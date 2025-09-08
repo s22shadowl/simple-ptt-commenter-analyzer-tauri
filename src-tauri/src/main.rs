@@ -1,24 +1,21 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// 宣告 `error` 和 `scraper` 模組
+mod error;
+mod scraper;
+
+use error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // --- 核心資料結構 (Core Data Structures) ---
-// 根據 TECHNICAL_DOCUMENTATION.md 建立，用於整個應用程式的資料傳遞。
-
-/// pttweb.cc 查詢結果的結構。
-/// `#[derive(...)]` 是一個屬性宏，自動為 struct 實現常用的 traits (特徵)。
-/// - `Serialize`, `Deserialize`: 讓 struct 能夠與 JSON 格式互相轉換 (Serde)。
-/// - `Debug`: 允許我們使用 `println!("{:?}", ...)` 來印出 struct 內容，方便除錯。
-/// - `Clone`: 允許我們複製這個 struct 的實例。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PttWebData {
     board_comments: HashMap<String, u32>,
     total_comments: u32,
 }
 
-/// 最終報告中，單筆使用者資料的完整結構。
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UserReportData {
     user: String,
@@ -27,54 +24,48 @@ pub struct UserReportData {
     total_comments: u32,
 }
 
-/// 我們主要的 Tauri 命令 (Command)。
-/// - `@tauri::command`: 將這個 Rust 函式標記為可從前端 JavaScript 呼叫的命令。
-/// - `async`: 表示這是一個非同步函式，允許在其中執行耗時操作 (如網路請求) 而不阻塞 UI。
-/// - 回傳 `Result<Vec<UserReportData>, String>`:
-///   - `Ok(Vec<UserReportData>)`: 成功時，直接回傳一個包含多筆使用者資料的 Vec (Vector)。Tauri 會自動將其序列化為 JSON 陣列。
-///   - `Err(String)`: 失敗時，回傳一個錯誤訊息字串。
+// --- Tauri 命令 (Tauri Command) ---
 #[tauri::command]
 async fn analyze_ptt_article(
     url: String,
     filter_type: String,
     keyword: Option<String>,
-) -> Result<Vec<UserReportData>, String> {
-    // 暫時的佔位符邏輯。
-    // 在接下來的任務中，這裡將會被完整的爬蟲與分析邏輯取代。
-    // 我們先模擬一個成功的回傳，以驗證資料結構和前後端通訊。
+) -> Result<Vec<UserReportData>, Error> {
     println!(
         "接收到分析請求: url={}, type={}, keyword={:?}",
         url, filter_type, keyword
     );
 
-    let mock_data = vec![
-        UserReportData {
-            user: "user_a".to_string(),
-            article_comments: 5,
-            board_comments: HashMap::from([
-                ("Gossiping".to_string(), 100),
-                ("C_Chat".to_string(), 50),
-            ]),
-            total_comments: 1000,
-        },
-        UserReportData {
-            user: "user_b".to_string(),
-            article_comments: 2,
-            board_comments: HashMap::from([("Stock".to_string(), 250)]),
-            total_comments: 500,
-        },
-    ];
+    // 步驟 1: 呼叫爬蟲模組來爬取 PTT 文章頁面
+    let article_data = scraper::scrape_ptt_article(&url, &filter_type, &keyword).await?;
 
-    // 模擬一個網路延遲
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    println!(
+        "文章爬取完成: '{}', 看板: {}, 找到 {} 位符合條件的使用者。",
+        article_data.title,
+        article_data.board,
+        article_data.user_comment_counts.len()
+    );
 
-    Ok(mock_data)
+    // TODO: 在後續任務中，會在這裡加入併發查詢 pttweb.cc 的邏輯。
+
+    // 暫時將第一階段的爬取結果轉換成最終報告格式。
+    // `board_comments` 和 `total_comments` 暫時為空。
+    let report_data: Vec<UserReportData> = article_data
+        .user_comment_counts
+        .into_iter()
+        .map(|(user, article_comments)| UserReportData {
+            user,
+            article_comments,
+            board_comments: HashMap::new(),
+            total_comments: 0,
+        })
+        .collect();
+
+    Ok(report_data)
 }
 
 fn main() {
     tauri::Builder::default()
-        // `invoke_handler` 負責註冊所有你希望從前端呼叫的 Rust 命令。
-        // `tauri::generate_handler![]` 是一個宏，會自動收集所有被 `#[tauri::command]` 標記的函式。
         .invoke_handler(tauri::generate_handler![analyze_ptt_article])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

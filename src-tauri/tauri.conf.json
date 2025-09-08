@@ -1,36 +1,65 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ptt_scraper_tauri",
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "identifier": "com.tauri.dev",
+  "productName": "ptt-article-analyzer",
   "version": "0.1.0",
-  "identifier": "com.jjerr.ptt_scraper_tauri",
   "build": {
+    "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "ptt_scraper_tauri",
-        "width": 800,
-        "height": 600
+        "fullscreen": false,
+        "height": 720,
+        "resizable": true,
+        "title": "PTT 留言分析器",
+        "width": 1280
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "category": "DeveloperTool",
+    "copyright": "",
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    },
+    "externalBin": [],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "longDescription": "",
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "resources": [],
+    "shortDescription": "",
+    "targets": "all",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "plugins": {
+    "opener": true
   }
 }
+
