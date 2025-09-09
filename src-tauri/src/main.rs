@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+/// src-tauri/src/main.rs
 // 宣告 `error` 和 `scraper` 模組
 mod error;
 mod scraper;

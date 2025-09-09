@@ -3036,6 +3036,8 @@ name = "ptt_scraper_tauri"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "once_cell",
+ "regex",
  "reqwest",
  "scraper",
  "serde",

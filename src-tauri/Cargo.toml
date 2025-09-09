@@ -28,3 +28,6 @@ futures = "0.3"
 
 # --- 新增 Tauri Opener 插件 ---
 tauri-plugin-opener = "2.5.0"
+
+once_cell = "1.19"
+regex = "1.10"
