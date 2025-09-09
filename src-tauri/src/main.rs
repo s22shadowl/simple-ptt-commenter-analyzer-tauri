@@ -7,8 +7,10 @@ mod error;
 mod scraper;
 
 use error::Error;
+use futures::stream::{self, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tauri::Emitter;
 
 // --- 核心資料結構 (Core Data Structures) ---
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,43 +27,90 @@ pub struct UserReportData {
     total_comments: u32,
 }
 
-// --- Tauri 命令 (Tauri Command) ---
+// --- 新增：用於前端進度事件的 Payload ---
+#[derive(Clone, serde::Serialize)]
+struct ProgressPayload {
+    current: usize,
+    total: usize,
+    user_id: String,
+}
+
+// --- Tauri 命令 (Tauri Command) - TASK-203 更新版 ---
 #[tauri::command]
 async fn analyze_ptt_article(
+    app: tauri::AppHandle, // <-- AppHandle 本身就具備 emit 方法
     url: String,
     filter_type: String,
     keyword: Option<String>,
 ) -> Result<Vec<UserReportData>, Error> {
-    println!(
-        "接收到分析請求: url={}, type={}, keyword={:?}",
-        url, filter_type, keyword
-    );
+    const CONCURRENT_LIMIT: usize = 10; // 設定併發查詢的上限
 
-    // 步驟 1: 呼叫爬蟲模組來爬取 PTT 文章頁面
+    // --- 步驟 1: 爬取 PTT 文章頁面，與之前相同 ---
     let article_data = scraper::scrape_ptt_article(&url, &filter_type, &keyword).await?;
-
+    let total_users = article_data.user_comment_counts.len();
     println!(
         "文章爬取完成: '{}', 看板: {}, 找到 {} 位符合條件的使用者。",
-        article_data.title,
-        article_data.board,
-        article_data.user_comment_counts.len()
+        article_data.title, article_data.board, total_users
     );
 
-    // TODO: 在後續任務中，會在這裡加入併發查詢 pttweb.cc 的邏輯。
+    // --- 步驟 2: 併發查詢 pttweb.cc ---
+    println!("開始深度查詢 {} 位使用者的 pttweb.cc 資料...", total_users);
 
-    // 暫時將第一階段的爬取結果轉換成最終報告格式。
-    // `board_comments` 和 `total_comments` 暫時為空。
-    let report_data: Vec<UserReportData> = article_data
-        .user_comment_counts
-        .into_iter()
-        .map(|(user, article_comments)| UserReportData {
-            user,
-            article_comments,
-            board_comments: HashMap::new(),
-            total_comments: 0,
-        })
-        .collect();
+    // 將使用者資料轉換為非同步流
+    let user_stream = stream::iter(article_data.user_comment_counts.into_iter());
 
+    let tasks = user_stream
+        .enumerate()
+        .map(|(i, (user, article_comments))| {
+            let app_handle = app.clone();
+            async move {
+                // 發送進度事件給前端 (修正: emit_all -> emit)
+                app_handle
+                    .emit(
+                        "SCRAPE_PROGRESS",
+                        ProgressPayload {
+                            current: i + 1,
+                            total: total_users,
+                            user_id: user.clone(),
+                        },
+                    )
+                    .unwrap(); // 在此處 unwrap，因為事件發送失敗是嚴重問題
+
+                // 執行 pttweb.cc 的爬取
+                match scraper::scrape_ptt_web(&user).await {
+                    Ok(ptt_web_data) => Some(UserReportData {
+                        user,
+                        article_comments,
+                        board_comments: ptt_web_data.board_comments,
+                        total_comments: ptt_web_data.total_comments,
+                    }),
+                    // 如果只是查無使用者，則回傳預設值，讓流程繼續
+                    Err(Error::PttWebUserNotFound(user_id)) => {
+                        println!("⚠️ 查無使用者: {}, 將回傳預設值。", user_id);
+                        Some(UserReportData {
+                            user,
+                            article_comments,
+                            board_comments: HashMap::new(),
+                            total_comments: 0,
+                        })
+                    }
+                    // 對於其他更嚴重的錯誤，則印出日誌並忽略此使用者
+                    Err(e) => {
+                        println!("❌ 查詢 {} 時發生錯誤: {:?}，將忽略此使用者。", user, e);
+                        None
+                    }
+                }
+            }
+        });
+
+    // 使用 buffer_unordered 進行併發處理，並收集結果
+    let report_data: Vec<UserReportData> = tasks
+        .buffer_unordered(CONCURRENT_LIMIT)
+        .filter_map(|res| async { res }) // 過濾掉查詢失敗的 None 結果
+        .collect()
+        .await;
+
+    println!("✅ pttweb.cc 資料查詢完成。");
     Ok(report_data)
 }
 
