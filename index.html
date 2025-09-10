@@ -1,43 +1,602 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
+    <title>PTT 留言分析器</title>
+    <!-- 引入 Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* 簡單的自訂樣式，用於美化捲軸 */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #1f2937; /* gray-800 */
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #4b5563; /* gray-600 */
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280; /* gray-500 */
+      }
+
+      /* 自訂 checkbox 樣式 */
+      .form-checkbox {
+        appearance: none;
+        background-color: #374151; /* gray-700 */
+        border: 1px solid #4b5563; /* gray-600 */
+        padding: 0;
+        display: inline-block;
+        vertical-align: middle;
+        position: relative;
+        width: 1.25em;
+        height: 1.25em;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+      .form-checkbox:checked {
+        background-color: #16a34a; /* green-600 */
+        border-color: #16a34a; /* green-600 */
+      }
+      .form-checkbox:checked::after {
+        content: "✓";
+        display: block;
+        color: white;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.9em;
+        font-weight: bold;
+      }
+      .form-checkbox:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        --tw-ring-color: #22c55e; /* green-500 */
+        box-shadow: 0 0 0 2px #111827, 0 0 0 4px var(--tw-ring-color);
+      }
+    </style>
   </head>
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+  <body class="bg-gray-900 text-gray-300 font-sans antialiased">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+      <!-- 標題區 -->
+      <header
+        class="text-center mb-8 flex items-center justify-center space-x-2"
+      >
+        <h1 class="text-3xl font-bold text-white">PTT 留言分析器</h1>
+        <!-- 使用說明 ICON -->
+        <div class="group relative">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6 text-gray-400 hover:text-white cursor-pointer"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
+            />
+          </svg>
+          <div
+            class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none text-left text-sm z-10"
+          >
+            <h4 class="font-bold text-white mb-2">使用說明</h4>
+            <!-- (修正) 調整說明順序 -->
+            <ul class="space-y-2 text-gray-300">
+              <li>
+                <strong class="text-gray-200">文章網址:</strong> 必須為 PTT
+                網頁版文章的完整網址。
+              </li>
+              <li>
+                <strong class="text-gray-200">高亮條件:</strong>
+                用於將符合特定條件的使用者獨立分組。格式為
+                <span class="text-green-400 font-mono">看板,比較子,數值</span
+                >。例如：<span class="text-green-400 font-mono"
+                  >Gossiping,>,10%</span
+                >
+                或 <span class="text-green-400 font-mono">Stock,<=,5</span>。
+              </li>
+              <li>
+                <strong class="text-gray-200">留言關鍵字:</strong>
+                可輸入多個關鍵字並以<span class="text-green-400 font-mono"
+                  >逗號 (,)</span
+                >
+                分隔，邏輯為「或」。例如輸入 "台灣,中國"，會找出留言中包含
+                "台灣" 或 "中國" 的所有留言。
+              </li>
+              <li>
+                <strong class="text-gray-200">留言類型:</strong>
+                可複選，勾選多項代表篩選條件為「或」。例如勾選「推」和「噓」，則會找出所有推文或噓文。
+              </li>
+            </ul>
+          </div>
+        </div>
+      </header>
 
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
+      <!-- 表單版面 -->
+      <form
+        id="analysis-form"
+        class="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col space-y-6"
+      >
+        <!-- URL 輸入 -->
+        <div>
+          <label
+            for="url-input"
+            class="block text-base font-medium text-gray-300 mb-2"
+            >文章網址</label
+          >
+          <input
+            type="url"
+            id="url-input"
+            required
+            placeholder="https://www.ptt.cc/bbs/..."
+            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
           />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+        </div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
+        <!-- 高亮條件移到上方 -->
+        <div>
+          <label
+            for="highlight-input"
+            class="block text-base font-medium text-gray-300 mb-2"
+            >高亮條件 (選填)</label
+          >
+          <input
+            type="text"
+            id="highlight-input"
+            placeholder="格式: 看板,>,10% 或 看板,<=,5"
+            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+          />
+        </div>
+
+        <!-- (修正) 篩選條件與按鈕並排 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 items-end">
+          <!-- 關鍵字 -->
+          <div class="sm:col-span-1">
+            <label
+              for="keyword-input"
+              class="block text-base font-medium text-gray-300 mb-2"
+              >留言關鍵字 (以逗號分隔)</label
+            >
+            <input
+              type="text"
+              id="keyword-input"
+              placeholder="e.g., 台灣,中國"
+              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            />
+          </div>
+          <!-- 留言類型 -->
+          <div class="sm:col-span-1">
+            <label class="block text-base font-medium text-gray-300 mb-2"
+              >留言類型</label
+            >
+            <div
+              id="type-checkboxes"
+              class="flex items-center space-x-6 bg-gray-700 border border-gray-600 rounded-md px-3 py-2 h-full"
+            >
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="comment-type"
+                  value="push"
+                  class="form-checkbox"
+                  checked
+                />
+                <span>推</span>
+              </label>
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="comment-type"
+                  value="hate"
+                  class="form-checkbox"
+                  checked
+                />
+                <span>噓</span>
+              </label>
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="comment-type"
+                  value="arrow"
+                  class="form-checkbox"
+                  checked
+                />
+                <span>→</span>
+              </label>
+            </div>
+          </div>
+          <!-- 按鈕 -->
+          <div class="sm:col-span-1">
+            <button
+              type="submit"
+              id="submit-button"
+              class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 transition duration-300 ease-in-out flex items-center justify-center disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+              <svg
+                id="loading-spinner"
+                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span id="button-text">開始分析</span>
+            </button>
+          </div>
+        </div>
       </form>
-      <p id="greet-msg"></p>
-    </main>
+
+      <!-- 進度回報區 -->
+      <div id="progress-container" class="mt-6 hidden">
+        <p id="progress-text" class="text-center text-green-400 mb-2">
+          正在準備分析...
+        </p>
+        <div class="w-full bg-gray-700 rounded-full h-2.5">
+          <div
+            id="progress-bar"
+            class="bg-green-600 h-2.5 rounded-full"
+            style="width: 0%"
+          ></div>
+        </div>
+      </div>
+
+      <!-- 錯誤訊息區 -->
+      <div
+        id="error-container"
+        class="mt-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-md hidden"
+      >
+        <h3 class="font-bold">發生錯誤</h3>
+        <p id="error-message"></p>
+      </div>
+
+      <!-- 結果展示區 -->
+      <div
+        id="result-container"
+        class="mt-6 bg-gray-800 rounded-lg shadow-lg hidden"
+      >
+        <!-- 結果區頂部操作列 -->
+        <div
+          class="p-4 border-b border-gray-700 flex justify-between items-center"
+        >
+          <h2 class="text-xl font-bold text-white">分析結果</h2>
+          <button
+            id="copy-button"
+            class="bg-gray-600 text-white text-sm font-bold py-2 px-3 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 transition duration-300"
+          >
+            複製報告
+          </button>
+        </div>
+        <!-- 可滾動的內容區 -->
+        <div class="max-h-[500px] overflow-y-auto p-4">
+          <!-- 高亮使用者表格 -->
+          <div id="highlight-table-container" class="hidden">
+            <h3 class="text-lg font-semibold text-green-400 mb-2">
+              高亮使用者
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-gray-700">
+                  <tr>
+                    <!-- 表頭會由 JS 動態產生 -->
+                  </tr>
+                </thead>
+                <tbody
+                  id="highlight-table-body"
+                  class="divide-y divide-gray-700"
+                >
+                  <!-- 表格內容會由 JS 動態產生 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 一般使用者表格 -->
+          <div id="normal-table-container" class="mt-4">
+            <h3
+              id="normal-table-title"
+              class="text-lg font-semibold text-white mb-2"
+            >
+              使用者列表
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-gray-700">
+                  <tr>
+                    <!-- 表頭會由 JS 動態產生 -->
+                  </tr>
+                </thead>
+                <tbody id="normal-table-body" class="divide-y divide-gray-700">
+                  <!-- 表格內容會由 JS 動態產生 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // 引入 Tauri API
+      const { invoke } = window.__TAURI__.tauri
+      const { listen } = window.__TAURI__.event
+      const { writeText } = window.__TAURI__.clipboard
+
+      // --- DOM 元素參照 ---
+      const form = document.getElementById("analysis-form")
+      const urlInput = document.getElementById("url-input")
+      const typeCheckboxes = document.getElementById("type-checkboxes")
+      const keywordInput = document.getElementById("keyword-input")
+      const highlightInput = document.getElementById("highlight-input")
+      const submitButton = document.getElementById("submit-button")
+      const loadingSpinner = document.getElementById("loading-spinner")
+      const buttonText = document.getElementById("button-text")
+      const progressContainer = document.getElementById("progress-container")
+      const progressText = document.getElementById("progress-text")
+      const progressBar = document.getElementById("progress-bar")
+      const errorContainer = document.getElementById("error-container")
+      const errorMessage = document.getElementById("error-message")
+      const resultContainer = document.getElementById("result-container")
+      const copyButton = document.getElementById("copy-button")
+      const highlightTableContainer = document.getElementById(
+        "highlight-table-container"
+      )
+      const normalTableContainer = document.getElementById(
+        "normal-table-container"
+      )
+      const normalTableTitle = document.getElementById("normal-table-title")
+
+      // 儲存最新的分析結果
+      let latestAnalysisResult = null
+
+      // --- (JS 邏輯未變) ---
+
+      /** UI 狀態管理 */
+      function setUiLoading(isLoading) {
+        if (isLoading) {
+          submitButton.disabled = true
+          loadingSpinner.classList.remove("hidden")
+          buttonText.textContent = "分析中..."
+          progressContainer.classList.remove("hidden")
+          resultContainer.classList.add("hidden")
+          errorContainer.classList.add("hidden")
+          progressBar.style.width = "0%"
+          progressText.textContent = "正在準備分析..."
+        } else {
+          submitButton.disabled = false
+          loadingSpinner.classList.add("hidden")
+          buttonText.textContent = "開始分析"
+        }
+      }
+
+      /** 渲染表格 */
+      function renderTables(result) {
+        latestAnalysisResult = result
+        const { highlighted_data, normal_data } = result
+
+        if (highlighted_data.length === 0 && normal_data.length === 0) {
+          errorContainer.classList.remove("hidden")
+          errorMessage.textContent = "找不到符合條件的留言。"
+          progressContainer.classList.add("hidden")
+          resultContainer.classList.add("hidden")
+          return
+        }
+
+        const hasHighlightData = highlighted_data.length > 0
+        highlightTableContainer.classList.toggle("hidden", !hasHighlightData)
+        normalTableTitle.textContent = hasHighlightData
+          ? "一般使用者"
+          : "使用者列表"
+
+        const allBoards = new Set()
+        ;[...highlighted_data, ...normal_data].forEach((user) => {
+          Object.keys(user.board_comments).forEach((board) =>
+            allBoards.add(board)
+          )
+        })
+        const boardHeaders = Array.from(allBoards).sort()
+
+        const headers = [
+          "使用者",
+          "本文留言數",
+          ...boardHeaders,
+          "生涯總留言數",
+        ]
+        const headerHtml = headers
+          .map(
+            (h) =>
+              `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">${h}</th>`
+          )
+          .join("")
+
+        const createTableRows = (data) => {
+          return data
+            .map((user) => {
+              const boardCells = boardHeaders
+                .map((board) => `<td>${user.board_comments[board] || 0}</td>`)
+                .join("")
+              return `
+                    <tr class="hover:bg-gray-700 transition">
+                        <td>${user.user}</td>
+                        <td>${user.article_comments}</td>
+                        ${boardCells}
+                        <td>${user.total_comments}</td>
+                    </tr>
+                `
+            })
+            .join("")
+        }
+
+        const styleTableCells = (tableBody) => {
+          tableBody.querySelectorAll("td").forEach((td) => {
+            td.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-300"
+          })
+        }
+
+        if (hasHighlightData) {
+          const hTHead = highlightTableContainer.querySelector("thead tr")
+          const hTBody = highlightTableContainer.querySelector("tbody")
+          hTHead.innerHTML = headerHtml
+          hTBody.innerHTML = createTableRows(highlighted_data)
+          styleTableCells(hTBody)
+        }
+
+        const nTHead = normalTableContainer.querySelector("thead tr")
+        const nTBody = normalTableContainer.querySelector("tbody")
+        nTHead.innerHTML = headerHtml
+        nTBody.innerHTML = createTableRows(normal_data)
+        styleTableCells(nTBody)
+
+        resultContainer.classList.remove("hidden")
+        progressContainer.classList.add("hidden")
+      }
+
+      /** 將結果轉換為 Markdown 格式以供複製 */
+      function formatResultAsMarkdown(result) {
+        const { highlighted_data, normal_data } = result
+
+        const allBoards = new Set()
+        ;[...highlighted_data, ...normal_data].forEach((user) => {
+          Object.keys(user.board_comments).forEach((board) =>
+            allBoards.add(board)
+          )
+        })
+        const boardHeaders = Array.from(allBoards).sort()
+        const headers = [
+          "使用者",
+          "本文留言數",
+          ...boardHeaders,
+          "生涯總留言數",
+        ]
+
+        const createMdTable = (data, title) => {
+          if (data.length === 0) return ""
+
+          const headerRow = `| ${headers.join(" | ")} |`
+          const separatorRow = `|${headers.map(() => "---").join("|")}|`
+
+          const bodyRows = data
+            .map((user) => {
+              const boardCells = boardHeaders.map(
+                (board) => user.board_comments[board] || 0
+              )
+              const rowData = [
+                user.user,
+                user.article_comments,
+                ...boardCells,
+                user.total_comments,
+              ]
+              return `| ${rowData.join(" | ")} |`
+            })
+            .join("\n")
+
+          return `### ${title}\n\n${headerRow}\n${separatorRow}\n${bodyRows}`
+        }
+
+        let markdown = "## PTT 留言分析報告\n\n"
+        if (highlighted_data.length > 0) {
+          markdown += createMdTable(highlighted_data, "高亮使用者") + "\n\n"
+        }
+        markdown += createMdTable(
+          normal_data,
+          highlighted_data.length > 0 ? "一般使用者" : "使用者列表"
+        )
+
+        return markdown
+      }
+
+      // --- 事件監聽 ---
+
+      // 監聽後端進度事件
+      const unlisten = await listen("SCRAPE_PROGRESS", (event) => {
+        const { current, total, user_id } = event.payload
+        const percentage = total > 0 ? (current / total) * 100 : 0
+        progressBar.style.width = `${percentage}%`
+        progressText.textContent = `[${current}/${total}] 正在查詢 ${user_id}...`
+      })
+
+      // 監聽表單提交
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault()
+        setUiLoading(true)
+
+        const selectedTypes = Array.from(
+          typeCheckboxes.querySelectorAll("input:checked")
+        ).map((cb) => cb.value)
+        // 如果使用者取消所有勾選，則視為不過濾類型
+        if (selectedTypes.length === 0) {
+          selectedTypes.push("push", "hate", "arrow", "unknown") // 'unknown' for safety
+        }
+
+        const keywords = keywordInput.value.trim()
+          ? keywordInput.value
+              .split(",")
+              .map((k) => k.trim())
+              .filter((k) => k)
+          : null
+
+        const params = {
+          url: urlInput.value,
+          filterTypes: selectedTypes,
+          keywords: keywords,
+          highlightCondition: highlightInput.value || null,
+        }
+
+        try {
+          const result = await invoke("analyze_ptt_article", params)
+          renderTables(result)
+        } catch (err) {
+          errorContainer.classList.remove("hidden")
+          errorMessage.textContent = err.toString()
+          progressContainer.classList.add("hidden")
+        } finally {
+          setUiLoading(false)
+        }
+      })
+
+      // 監聽複製按鈕點擊
+      copyButton.addEventListener("click", async () => {
+        if (!latestAnalysisResult) return
+
+        const markdownText = formatResultAsMarkdown(latestAnalysisResult)
+        try {
+          await writeText(markdownText)
+          const originalText = copyButton.textContent
+          copyButton.textContent = "已複製 ✓"
+          setTimeout(() => {
+            copyButton.textContent = originalText
+          }, 2000)
+        } catch (err) {
+          console.error("複製失敗:", err)
+          errorMessage.textContent = "複製到剪貼簿失敗！"
+          errorContainer.classList.remove("hidden")
+          setTimeout(() => {
+            errorContainer.classList.add("hidden")
+          }, 3000)
+        }
+      })
+    </script>
   </body>
 </html>
