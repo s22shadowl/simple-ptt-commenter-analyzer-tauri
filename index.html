@@ -33,7 +33,6 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         pointer-events: none;
       }
-      /* (版型修正) 調整彈出位置 */
       .tooltip .tooltip-text {
         bottom: auto;
         top: 150%;
@@ -42,6 +41,10 @@
         visibility: visible;
         opacity: 1;
       }
+      /* 設定 Modal 的樣式 */
+      #settings-modal {
+        transition: opacity 0.3s ease;
+      }
     </style>
   </head>
   <body class="bg-gray-900 text-gray-300">
@@ -49,69 +52,95 @@
       <!-- 標題 -->
       <header class="flex items-center justify-between mb-6">
         <h1 class="text-3xl font-bold text-white">PTT 留言分析器</h1>
-        <div class="tooltip">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="text-gray-400 hover:text-white cursor-pointer"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <div class="tooltip-text">
-            <h3 class="font-bold text-lg mb-2 text-green-400">使用說明</h3>
-            <ul class="list-disc list-inside space-y-2 text-sm">
-              <!-- (需求修改) 調整說明順序 -->
-              <li>
-                <strong>高亮條件</strong>:
-                <p class="pl-2">
-                  根據特定看板的留言數或佔比，將符合條件的使用者標示出來。格式為
-                  <span class="text-green-400 font-mono"
-                    >看板名稱,比較符,數字</span
-                  >。
-                </p>
-                <p class="pl-2">
-                  比較符可以是
-                  <span class="text-green-400 font-mono">&gt;</span>,
-                  <span class="text-green-400 font-mono">&gt;=</span>,
-                  <!-- (HTML 修正) 轉義特殊字元 -->
-                  <span class="text-green-400 font-mono">&lt;</span>,
-                  <span class="text-green-400 font-mono">&lt;=</span>,
-                  <span class="text-green-400 font-mono">==</span>。
-                </p>
-                <p class="pl-2">
-                  數字可帶
-                  <span class="text-green-400 font-mono">%</span>
-                  代表佔比。例如：<span class="text-green-400 font-mono"
-                    >Gossiping,&gt;,10%</span
+        <div class="flex items-center space-x-2">
+          <!-- 設定圖示 -->
+          <button id="settings-btn" class="text-gray-400 hover:text-white">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+              ></path>
+            </svg>
+          </button>
+          <!-- 說明圖示 -->
+          <div class="tooltip">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-gray-400 hover:text-white cursor-pointer"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <div class="tooltip-text tracking-wide leading-relaxed">
+              <h3 class="font-bold text-lg mb-4 text-green-400">使用說明</h3>
+              <div class="space-y-4 text-sm">
+                <!-- Section 1: Highlight Condition -->
+                <div>
+                  <strong class="font-semibold text-base text-gray-200"
+                    >高亮條件</strong
                   >
-                  或
-                  <span class="text-green-400 font-mono">Stock,&lt;=,5</span>。
-                </p>
-              </li>
-              <li>
-                <strong>留言關鍵字</strong>:
-                <p class="pl-2">
-                  篩選出留言內容包含特定字詞的使用者。可使用逗號
-                  <span class="text-green-400 font-mono">,</span>
-                  分隔多個關鍵字，符合任一即可 (OR 邏輯)。
-                </p>
-              </li>
-              <li>
-                <strong>留言類型</strong>:
-                <p class="pl-2">
-                  可複選「推」、「噓」或「→」，篩選出特定類型的留言。
-                </p>
-              </li>
-            </ul>
+                  <p class="mt-1 text-gray-400">
+                    根據使用者在特定看板的留言數或佔比來標示。
+                  </p>
+                  <div class="mt-2 space-y-1">
+                    <p class="text-xs text-gray-500">格式:</p>
+                    <code
+                      class="block w-full text-left p-2 bg-gray-900 text-green-400 rounded-md text-xs font-mono"
+                      >看板名稱,比較符,數字(%)</code
+                    >
+                    <p class="text-xs text-gray-500 mt-2">範例:</p>
+                    <code
+                      class="inline-block px-1.5 py-0.5 bg-gray-900 text-green-400 rounded-md text-xs font-mono"
+                      >Gossiping,&gt;,10%</code
+                    >
+                    <code
+                      class="inline-block px-1.5 py-0.5 bg-gray-900 text-green-400 rounded-md text-xs font-mono"
+                      >Stock,&lt;=,5</code
+                    >
+                  </div>
+                </div>
+                <!-- Section 2: Keywords -->
+                <div>
+                  <strong class="font-semibold text-base text-gray-200"
+                    >留言關鍵字</strong
+                  >
+                  <p class="mt-1 text-gray-400">
+                    篩選留言內容包含特定字詞的使用者 (OR 邏輯)。可用<code
+                      class="text-green-400 font-mono"
+                      >,</code
+                    >分隔多個關鍵字。
+                  </p>
+                </div>
+                <!-- Section 3: Comment Types -->
+                <div>
+                  <strong class="font-semibold text-base text-gray-200"
+                    >留言類型</strong
+                  >
+                  <p class="mt-1 text-gray-400">
+                    可複選「推」、「噓」或「→」，篩選特定類型的留言。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -278,8 +307,14 @@
         role="alert"
       ></div>
 
+      <!-- 報告元數據顯示區 -->
+      <div
+        id="metadata-container"
+        class="hidden mt-8 p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-2"
+      ></div>
+
       <!-- 結果展示區 -->
-      <div id="result-container" class="hidden mt-8">
+      <div id="result-container" class="hidden mt-4">
         <div class="flex justify-end mb-4">
           <button
             id="copy-btn"
@@ -289,7 +324,7 @@
               class="w-4 h-4 mr-2"
               fill="none"
               stroke="currentColor"
-              viewBox="0 0 24"
+              viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
@@ -311,16 +346,86 @@
       </div>
     </main>
 
+    <!-- 設定 Modal -->
+    <div
+      id="settings-modal"
+      class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden opacity-0"
+    >
+      <div
+        class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md border border-gray-700"
+      >
+        <h2 class="text-2xl font-bold text-white mb-4">爬蟲設定</h2>
+        <form id="settings-form">
+          <div class="space-y-4">
+            <div>
+              <label
+                for="settings-boards"
+                class="block mb-2 text-base font-medium text-white"
+                >查詢看板 (以 , 分隔)</label
+              >
+              <textarea
+                id="settings-boards"
+                rows="3"
+                class="w-full bg-gray-700 border border-gray-600 text-white text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block mb-2 text-base font-medium text-white"
+                >排序方式</label
+              >
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="settings-sort-by" class="text-sm text-gray-400"
+                    >排序欄位</label
+                  >
+                  <select
+                    id="settings-sort-by"
+                    class="w-full mt-1 bg-gray-700 border border-gray-600 text-black text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+                  >
+                    <option>本文留言數</option>
+                    <option>生涯總留言數</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="settings-order" class="text-sm text-gray-400"
+                    >排序順序</label
+                  >
+                  <select
+                    id="settings-order"
+                    class="w-full mt-1 bg-gray-700 border border-gray-600 text-black text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+                  >
+                    <option value="desc">由多到少 (desc)</option>
+                    <option value="asc">由少到多 (asc)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              id="settings-cancel-btn"
+              class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:ring-offset-gray-900"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 focus:ring-offset-gray-900"
+            >
+              儲存
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script type="module">
-      // (修正) 改用符合 Tauri v2 的 ES Module Imports 方式
       import { core, event } from "@tauri-apps/api"
-      import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager"
+      import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 
       const { invoke } = core
       const { listen } = event
-
-      // (Debug) 檢查 Tauri API 是否成功載入
-      console.log("Tauri API modules imported successfully.")
 
       // DOM Elements
       const form = document.getElementById("analysis-form")
@@ -332,16 +437,33 @@
       const progressBar = document.getElementById("progress-bar")
       const progressPercentage = document.getElementById("progress-percentage")
       const errorContainer = document.getElementById("error-container")
+      const metadataContainer = document.getElementById("metadata-container")
       const resultContainer = document.getElementById("result-container")
       const resultTables = document.getElementById("result-tables")
       const copyBtn = document.getElementById("copy-btn")
       const copyBtnText = document.getElementById("copy-btn-text")
 
+      // 設定 Modal 的 DOM Elements
+      const settingsBtn = document.getElementById("settings-btn")
+      const settingsModal = document.getElementById("settings-modal")
+      const settingsForm = document.getElementById("settings-form")
+      const settingsCancelBtn = document.getElementById("settings-cancel-btn")
+      const settingsBoards = document.getElementById("settings-boards")
+      const settingsSortBy = document.getElementById("settings-sort-by")
+      const settingsOrder = document.getElementById("settings-order")
+
       // App state
       let analysisResultCache = null
+      // AppConfig 狀態，使用 Rust 的 Default 值作為初始值
+      let appConfig = {
+        boards: ["Gossiping", "HatePolitics"],
+        sorting: {
+          sortBy: "本文留言數",
+          order: "desc",
+        },
+      }
 
       // Event Listeners
-      console.log("Setting up event listeners...")
       listen("SCRAPE_PROGRESS", (event) => {
         const { current, total, user_id } = event.payload
         const percentage = Math.round((current / total) * 100)
@@ -352,9 +474,6 @@
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault()
-        // (Debug) 確認 submit 事件已觸發
-        console.log("Form submitted. Analysis started.")
-
         setLoadingState(true)
         resetUI()
 
@@ -373,30 +492,25 @@
             filterTypes.push(checkbox.value)
           })
 
+        // 建立 payload，並包含 config
         const payload = {
           url,
           filterTypes,
           keywords: keywords.length > 0 ? keywords : null,
           highlightCondition: highlightCondition || null,
+          config: appConfig, // 將當前的設定一起傳給後端
         }
 
-        // (Debug) 顯示即將傳送給後端的 payload
-        console.log("Invoking 'analyze_ptt_article' with payload:", payload)
-
         try {
-          const result = await invoke("analyze_ptt_article", payload)
-          // (Debug) 顯示後端成功回傳的結果
-          console.log("Backend returned result:", result)
-          analysisResultCache = result // Cache result for copy functionality
+          const result = await invoke("analyze_ptt_article", {
+            payload: payload,
+          })
+          analysisResultCache = result
           renderResult(result)
         } catch (error) {
-          // (Debug) 顯示後端回傳的錯誤
-          console.error("Backend returned an error:", error)
           showError(error)
         } finally {
           setLoadingState(false)
-          // (Debug) 確認分析流程結束 (無論成功或失敗)
-          console.log("Analysis finished.")
         }
       })
 
@@ -415,7 +529,40 @@
           copyBtnText.textContent = "複製失敗"
         }
       })
-      console.log("Event listeners set up.")
+
+      // 設定 Modal 的事件監聽
+      settingsBtn.addEventListener("click", () => {
+        // 開啟 Modal 前，將目前的設定值填入表單
+        settingsBoards.value = appConfig.boards.join(", ")
+        settingsSortBy.value = appConfig.sorting.sortBy
+        settingsOrder.value = appConfig.sorting.order
+
+        settingsModal.classList.remove("hidden")
+        setTimeout(() => settingsModal.classList.remove("opacity-0"), 10) // 觸發淡入效果
+      })
+
+      settingsCancelBtn.addEventListener("click", () => {
+        settingsModal.classList.add("opacity-0")
+        setTimeout(() => settingsModal.classList.add("hidden"), 300) // 等待動畫結束後隱藏
+      })
+
+      settingsForm.addEventListener("submit", (e) => {
+        e.preventDefault()
+
+        // 儲存設定
+        appConfig.boards = settingsBoards.value
+          .split(",")
+          .map((b) => b.trim())
+          .filter((b) => b)
+        appConfig.sorting.sortBy = settingsSortBy.value
+        appConfig.sorting.order = settingsOrder.value
+
+        console.log("設定已更新:", appConfig)
+
+        // 關閉 Modal
+        settingsModal.classList.add("opacity-0")
+        setTimeout(() => settingsModal.classList.add("hidden"), 300)
+      })
 
       // UI Functions
       function setLoadingState(isLoading) {
@@ -426,42 +573,68 @@
 
       function resetUI() {
         errorContainer.classList.add("hidden")
+        metadataContainer.classList.add("hidden")
         resultContainer.classList.add("hidden")
         progressContainer.classList.remove("hidden")
         progressBar.style.width = "0%"
         progressText.textContent = "準備開始分析..."
         progressPercentage.textContent = "0%"
+        metadataContainer.innerHTML = ""
         resultTables.innerHTML = ""
         analysisResultCache = null
       }
 
       function renderResult(result) {
         progressContainer.classList.add("hidden")
+
+        renderMetadata(result.metadata)
+        metadataContainer.classList.remove("hidden")
+
         resultContainer.classList.remove("hidden")
-        resultTables.innerHTML = "" // Clear previous results
+        resultTables.innerHTML = ""
 
         if (
-          result.highlighted_data.length === 0 &&
-          result.normal_data.length === 0
+          result.highlightedData?.length === 0 &&
+          result.normalData?.length === 0
         ) {
           resultTables.innerHTML = `<p class="p-4 text-center text-gray-400">找不到符合條件的使用者留言。</p>`
           return
         }
 
-        if (result.highlighted_data.length > 0) {
+        if (result.highlightedData?.length > 0) {
           resultTables.appendChild(
-            createTable(result.highlighted_data, "高亮使用者")
+            createTable(result.highlightedData, "高亮使用者")
           )
         }
-        if (result.normal_data.length > 0) {
-          resultTables.appendChild(
-            createTable(result.normal_data, "一般使用者")
-          )
+        if (result.normalData?.length > 0) {
+          resultTables.appendChild(createTable(result.normalData, "一般使用者"))
         }
+      }
+
+      function renderMetadata(metadata) {
+        const keywordsText = metadata.keywords
+          ? metadata.keywords.join(", ")
+          : "(無)"
+        const highlightText = metadata.highlightCondition || "(無)"
+
+        metadataContainer.innerHTML = `
+                <p><strong class="font-medium text-gray-400">文章標題:</strong> <span class="text-white">${
+                  metadata.title
+                }</span></p>
+                <p><strong class="font-medium text-gray-400">看板:</strong> <span class="text-white">${
+                  metadata.board
+                }</span></p>
+                <p><strong class="font-medium text-gray-400">篩選類型:</strong> <span class="text-white">${
+                  metadata.filterTypes.join(", ") || "(無)"
+                }</span></p>
+                <p><strong class="font-medium text-gray-400">關鍵字:</strong> <span class="text-white">${keywordsText}</span></p>
+                <p><strong class="font-medium text-gray-400">高亮條件:</strong> <span class="text-white">${highlightText}</span></p>
+               `
       }
 
       function createTable(data, title) {
         const allBoards = new Set()
+        console.log("data:", data)
         data.forEach((user) => {
           Object.keys(user.board_comments).forEach((board) =>
             allBoards.add(board)
@@ -477,42 +650,44 @@
 
         const container = document.createElement("div")
         container.innerHTML = `
-          <h3 class="text-xl font-semibold p-4 bg-gray-800 text-white sticky top-0 z-10">${title}</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-400">
-              <thead class="text-xs text-gray-400 uppercase bg-gray-700">
-                <tr>
-                  ${headers
-                    .map((h) => `<th scope="col" class="px-6 py-3">${h}</th>`)
-                    .join("")}
-                </tr>
-              </thead>
-              <tbody>
-                ${data
-                  .map(
-                    (user) => `
-                  <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-600">
-                    <td class="px-6 py-4 font-medium text-white whitespace-nowrap">${
-                      user.user
-                    }</td>
-                    <td class="px-6 py-4">${user.article_comments}</td>
-                    ${sortedBoards
+              <h3 class="text-xl font-semibold p-4 bg-gray-800 text-white sticky top-0 z-10">${title}</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-400">
+                  <thead class="text-xs text-gray-400 uppercase bg-gray-700">
+                    <tr>
+                      ${headers
+                        .map(
+                          (h) => `<th scope="col" class="px-6 py-3">${h}</th>`
+                        )
+                        .join("")}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data
                       .map(
-                        (board) =>
-                          `<td class="px-6 py-4">${
-                            user.board_comments[board] || 0
-                          }</td>`
+                        (user) => `
+                    <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-600">
+                      <td class="px-6 py-4 font-medium text-white whitespace-nowrap">${
+                        user.user
+                      }</td>
+                      <td class="px-6 py-4">${user.article_comments}</td>
+                      ${sortedBoards
+                        .map(
+                          (board) =>
+                            `<td class="px-6 py-4">${
+                              user.board_comments[board] || 0
+                            }</td>`
+                        )
+                        .join("")}
+                      <td class="px-6 py-4">${user.total_comments}</td>
+                    </tr>
+                  `
                       )
                       .join("")}
-                    <td class="px-6 py-4">${user.total_comments}</td>
-                  </tr>
-                `
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `
+                  </tbody>
+                </table>
+              </div>
+            `
         return container
       }
 
@@ -523,10 +698,21 @@
       }
 
       function generateReportText(result) {
-        let text = ""
+        const { metadata, highlightedData, normalData } = result
+        let text = `--- 報告資訊 ---\n`
+        text += `文章標題: ${metadata.title}\n`
+        text += `看板: ${metadata.board}\n`
+        text += `文章網址: ${metadata.url}\n`
+        text += `篩選類型: ${metadata.filterTypes.join(", ") || "(無)"}\n`
+        text += `關鍵字: ${
+          metadata.keywords ? metadata.keywords.join(", ") : "(無)"
+        }\n`
+        text += `高亮條件: ${metadata.highlightCondition || "(無)"}\n\n`
+
         const generateTableText = (data, title) => {
-          if (data.length === 0) return ""
+          if (!data || data.length === 0) return ""
           const allBoards = new Set()
+          console.log("data:", data)
           data.forEach((user) => {
             Object.keys(user.board_comments).forEach((board) =>
               allBoards.add(board)
@@ -555,13 +741,12 @@
           return table
         }
 
-        if (result.highlighted_data.length > 0) {
+        if (highlightedData?.length > 0) {
           text +=
-            generateTableText(result.highlighted_data, "--- 高亮使用者 ---") +
-            "\n\n"
+            generateTableText(highlightedData, "--- 高亮使用者 ---") + "\n\n"
         }
-        if (result.normal_data.length > 0) {
-          text += generateTableText(result.normal_data, "--- 一般使用者 ---")
+        if (normalData?.length > 0) {
+          text += generateTableText(normalData, "--- 一般使用者 ---")
         }
         return text
       }

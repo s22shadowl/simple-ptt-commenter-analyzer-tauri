@@ -32,3 +32,4 @@ tauri-plugin-clipboard = "2.0.1"
 
 once_cell = "1.19"
 regex = "1.10"
+tauri-plugin-clipboard-manager = "2.3.0"

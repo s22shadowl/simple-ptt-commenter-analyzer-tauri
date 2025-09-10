@@ -1,0 +1,10 @@
+{
+  "boards": [
+    "Gossiping",
+    "HatePolitics"
+  ],
+  "sorting": {
+    "sortBy": "本文留言數",
+    "order": "desc"
+  }
+}

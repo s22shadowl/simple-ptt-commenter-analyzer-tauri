@@ -1,55 +1,31 @@
-use serde::Deserialize;
-use std::fs;
-use std::path::Path;
+// src-tauri/src/config.rs
 
-#[derive(Deserialize, Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+// (新增) 也加上 Serialize，讓這個結構體可以在 Rust 端與前端之間雙向傳遞
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SortingConfig {
-    #[serde(default = "default_sort_by")]
     pub sort_by: String,
-    #[serde(default = "default_order")]
     pub order: String, // "asc" or "desc"
 }
 
-#[derive(Deserialize, Debug, Clone)]
+// (新增) 也加上 Serialize
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppConfig {
-    #[serde(default)]
+    pub boards: Vec<String>,
     pub sorting: SortingConfig,
 }
 
-// --- serde default functions ---
-fn default_sort_by() -> String {
-    "本文留言數".to_string()
-}
-fn default_order() -> String {
-    "desc".to_string()
-}
-
-// --- Default implementations ---
-impl Default for SortingConfig {
-    fn default() -> Self {
-        SortingConfig {
-            sort_by: default_sort_by(),
-            order: default_order(),
-        }
-    }
-}
-
+// Default 實作依然有用，可以作為前端初始狀態的參考
 impl Default for AppConfig {
     fn default() -> Self {
         AppConfig {
-            sorting: SortingConfig::default(),
+            boards: vec!["Gossiping".to_string(), "HatePolitics".to_string()],
+            sorting: SortingConfig {
+                sort_by: "本文留言數".to_string(),
+                order: "desc".to_string(),
+            },
         }
-    }
-}
-
-pub fn load_config() -> AppConfig {
-    let path = Path::new("config.json");
-    if path.exists() {
-        fs::read_to_string(path)
-            .ok()
-            .and_then(|content| serde_json::from_str(&content).ok())
-            .unwrap_or_default()
-    } else {
-        AppConfig::default()
     }
 }
