@@ -1,230 +1,233 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PTT 留言分析器</title>
-    <!-- 引入 Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* 簡單的自訂樣式，用於美化捲軸 */
-      ::-webkit-scrollbar {
-        width: 8px;
+      /* 基本樣式 */
+      body {
+        font-family: "Inter", "Noto Sans TC", sans-serif;
       }
-
-      ::-webkit-scrollbar-track {
-        background: #1f2937; /* gray-800 */
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: #4b5563; /* gray-600 */
-        border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: #6b7280; /* gray-500 */
-      }
-
-      /* 自訂 checkbox 樣式 */
-      .form-checkbox {
-        appearance: none;
-        background-color: #374151; /* gray-700 */
-        border: 1px solid #4b5563; /* gray-600 */
-        padding: 0;
-        display: inline-block;
-        vertical-align: middle;
+      /* Tooltip 樣式 */
+      .tooltip {
         position: relative;
-        width: 1.25em;
-        height: 1.25em;
-        border-radius: 0.25rem;
-        cursor: pointer;
+        display: inline-block;
       }
-      .form-checkbox:checked {
-        background-color: #16a34a; /* green-600 */
-        border-color: #16a34a; /* green-600 */
-      }
-      .form-checkbox:checked::after {
-        content: "✓";
-        display: block;
-        color: white;
+      .tooltip .tooltip-text {
+        visibility: hidden;
+        width: 320px;
+        background-color: #2d3748;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 10px;
         position: absolute;
+        z-index: 1;
+        bottom: 150%;
         left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 0.9em;
-        font-weight: bold;
+        margin-left: -160px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        pointer-events: none;
       }
-      .form-checkbox:focus {
-        outline: 2px solid transparent;
-        outline-offset: 2px;
-        --tw-ring-color: #22c55e; /* green-500 */
-        box-shadow: 0 0 0 2px #111827, 0 0 0 4px var(--tw-ring-color);
+      /* (版型修正) 調整彈出位置 */
+      .tooltip .tooltip-text {
+        bottom: auto;
+        top: 150%;
+      }
+      .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
       }
     </style>
   </head>
-
-  <body class="bg-gray-900 text-gray-300 font-sans antialiased">
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
-      <!-- 標題區 -->
-      <header
-        class="text-center mb-8 flex items-center justify-center space-x-2"
-      >
+  <body class="bg-gray-900 text-gray-300">
+    <main class="container mx-auto p-4 md:p-8 max-w-4xl">
+      <!-- 標題 -->
+      <header class="flex items-center justify-between mb-6">
         <h1 class="text-3xl font-bold text-white">PTT 留言分析器</h1>
-        <!-- 使用說明 ICON -->
-        <div class="group relative">
+        <div class="tooltip">
           <svg
             xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24"
             fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
             stroke="currentColor"
-            class="w-6 h-6 text-gray-400 hover:text-white cursor-pointer"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-gray-400 hover:text-white cursor-pointer"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-            />
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          <div
-            class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none text-left text-sm z-10"
-          >
-            <h4 class="font-bold text-white mb-2">使用說明</h4>
-            <!-- (修正) 調整說明順序 -->
-            <ul class="space-y-2 text-gray-300">
+          <div class="tooltip-text">
+            <h3 class="font-bold text-lg mb-2 text-green-400">使用說明</h3>
+            <ul class="list-disc list-inside space-y-2 text-sm">
+              <!-- (需求修改) 調整說明順序 -->
               <li>
-                <strong class="text-gray-200">文章網址:</strong> 必須為 PTT
-                網頁版文章的完整網址。
+                <strong>高亮條件</strong>:
+                <p class="pl-2">
+                  根據特定看板的留言數或佔比，將符合條件的使用者標示出來。格式為
+                  <span class="text-green-400 font-mono"
+                    >看板名稱,比較符,數字</span
+                  >。
+                </p>
+                <p class="pl-2">
+                  比較符可以是
+                  <span class="text-green-400 font-mono">&gt;</span>,
+                  <span class="text-green-400 font-mono">&gt;=</span>,
+                  <!-- (HTML 修正) 轉義特殊字元 -->
+                  <span class="text-green-400 font-mono">&lt;</span>,
+                  <span class="text-green-400 font-mono">&lt;=</span>,
+                  <span class="text-green-400 font-mono">==</span>。
+                </p>
+                <p class="pl-2">
+                  數字可帶
+                  <span class="text-green-400 font-mono">%</span>
+                  代表佔比。例如：<span class="text-green-400 font-mono"
+                    >Gossiping,&gt;,10%</span
+                  >
+                  或
+                  <span class="text-green-400 font-mono">Stock,&lt;=,5</span>。
+                </p>
               </li>
               <li>
-                <strong class="text-gray-200">高亮條件:</strong>
-                用於將符合特定條件的使用者獨立分組。格式為
-                <span class="text-green-400 font-mono">看板,比較子,數值</span
-                >。例如：<span class="text-green-400 font-mono"
-                  >Gossiping,>,10%</span
-                >
-                或 <span class="text-green-400 font-mono">Stock,<=,5</span>。
+                <strong>留言關鍵字</strong>:
+                <p class="pl-2">
+                  篩選出留言內容包含特定字詞的使用者。可使用逗號
+                  <span class="text-green-400 font-mono">,</span>
+                  分隔多個關鍵字，符合任一即可 (OR 邏輯)。
+                </p>
               </li>
               <li>
-                <strong class="text-gray-200">留言關鍵字:</strong>
-                可輸入多個關鍵字並以<span class="text-green-400 font-mono"
-                  >逗號 (,)</span
-                >
-                分隔，邏輯為「或」。例如輸入 "台灣,中國"，會找出留言中包含
-                "台灣" 或 "中國" 的所有留言。
-              </li>
-              <li>
-                <strong class="text-gray-200">留言類型:</strong>
-                可複選，勾選多項代表篩選條件為「或」。例如勾選「推」和「噓」，則會找出所有推文或噓文。
+                <strong>留言類型</strong>:
+                <p class="pl-2">
+                  可複選「推」、「噓」或「→」，篩選出特定類型的留言。
+                </p>
               </li>
             </ul>
           </div>
         </div>
       </header>
 
-      <!-- 表單版面 -->
-      <form
-        id="analysis-form"
-        class="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col space-y-6"
-      >
-        <!-- URL 輸入 -->
+      <!-- 輸入表單 -->
+      <form id="analysis-form" class="space-y-6">
+        <!-- 第一排: 文章網址 -->
         <div>
-          <label
-            for="url-input"
-            class="block text-base font-medium text-gray-300 mb-2"
+          <label for="url" class="block mb-2 text-lg font-medium text-white"
             >文章網址</label
           >
           <input
             type="url"
-            id="url-input"
-            required
+            id="url"
+            class="w-full bg-gray-800 border border-gray-600 text-white text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-3"
             placeholder="https://www.ptt.cc/bbs/..."
-            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            required
           />
         </div>
 
-        <!-- 高亮條件移到上方 -->
+        <!-- 第二排: 高亮條件 -->
         <div>
           <label
-            for="highlight-input"
-            class="block text-base font-medium text-gray-300 mb-2"
+            for="highlight"
+            class="block mb-2 text-base font-medium text-white"
             >高亮條件 (選填)</label
           >
           <input
             type="text"
-            id="highlight-input"
-            placeholder="格式: 看板,>,10% 或 看板,<=,5"
-            class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+            id="highlight"
+            class="w-full bg-gray-800 border border-gray-600 text-white text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+            placeholder="看板名稱,比較符,數字(%)"
           />
         </div>
 
-        <!-- (修正) 篩選條件與按鈕並排 -->
+        <!-- 第三排: 關鍵字、類型、按鈕 -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 items-end">
-          <!-- 關鍵字 -->
+          <!-- 留言關鍵字 -->
           <div class="sm:col-span-1">
             <label
-              for="keyword-input"
-              class="block text-base font-medium text-gray-300 mb-2"
-              >留言關鍵字 (以逗號分隔)</label
+              for="keywords"
+              class="block mb-2 text-base font-medium text-white"
+              >留言關鍵字 (選填)</label
             >
             <input
               type="text"
-              id="keyword-input"
-              placeholder="e.g., 台灣,中國"
-              class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+              id="keywords"
+              class="w-full bg-gray-800 border border-gray-600 text-white text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5"
+              placeholder="台灣,中國 (以 , 分隔)"
             />
           </div>
+
           <!-- 留言類型 -->
           <div class="sm:col-span-1">
-            <label class="block text-base font-medium text-gray-300 mb-2"
+            <label class="block mb-2 text-base font-medium text-white"
               >留言類型</label
             >
             <div
-              id="type-checkboxes"
-              class="flex items-center space-x-6 bg-gray-700 border border-gray-600 rounded-md px-3 py-2 h-full"
+              class="flex items-center space-x-4 bg-gray-800 border border-gray-600 rounded-lg p-2.5"
             >
-              <label class="flex items-center space-x-2 cursor-pointer">
+              <div class="flex items-center">
                 <input
+                  id="type-push"
                   type="checkbox"
-                  name="comment-type"
                   value="push"
-                  class="form-checkbox"
+                  class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-600 ring-offset-gray-800 focus:ring-2"
                   checked
                 />
-                <span>推</span>
-              </label>
-              <label class="flex items-center space-x-2 cursor-pointer">
+                <label
+                  for="type-push"
+                  class="ml-2 text-sm font-medium text-gray-300"
+                  >推</label
+                >
+              </div>
+              <div class="flex items-center">
                 <input
+                  id="type-hate"
                   type="checkbox"
-                  name="comment-type"
                   value="hate"
-                  class="form-checkbox"
+                  class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-600 ring-offset-gray-800 focus:ring-2"
                   checked
                 />
-                <span>噓</span>
-              </label>
-              <label class="flex items-center space-x-2 cursor-pointer">
+                <label
+                  for="type-hate"
+                  class="ml-2 text-sm font-medium text-gray-300"
+                  >噓</label
+                >
+              </div>
+              <div class="flex items-center">
                 <input
+                  id="type-arrow"
                   type="checkbox"
-                  name="comment-type"
                   value="arrow"
-                  class="form-checkbox"
+                  class="w-4 h-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-600 ring-offset-gray-800 focus:ring-2"
                   checked
                 />
-                <span>→</span>
-              </label>
+                <label
+                  for="type-arrow"
+                  class="ml-2 text-sm font-medium text-gray-300"
+                  >→</label
+                >
+              </div>
             </div>
           </div>
-          <!-- 按鈕 -->
+
+          <!-- 開始分析按鈕 -->
           <div class="sm:col-span-1">
             <button
               type="submit"
-              id="submit-button"
-              class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 transition duration-300 ease-in-out flex items-center justify-center disabled:bg-gray-500 disabled:cursor-not-allowed"
+              id="submit-btn"
+              class="w-full text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-800 font-medium rounded-lg text-base px-5 py-2.5 text-center transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed flex items-center justify-center"
             >
+              <span id="btn-text">開始分析</span>
               <svg
-                id="loading-spinner"
-                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden"
+                id="btn-loader"
+                class="hidden animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -243,17 +246,22 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              <span id="button-text">開始分析</span>
             </button>
           </div>
         </div>
       </form>
 
       <!-- 進度回報區 -->
-      <div id="progress-container" class="mt-6 hidden">
-        <p id="progress-text" class="text-center text-green-400 mb-2">
-          正在準備分析...
-        </p>
+      <div id="progress-container" class="hidden mt-6">
+        <div class="flex justify-between mb-1">
+          <span
+            id="progress-text"
+            class="text-base font-medium text-white"
+          ></span>
+          <span id="progress-percentage" class="text-sm font-medium text-white"
+            >0%</span
+          >
+        </div>
         <div class="w-full bg-gray-700 rounded-full h-2.5">
           <div
             id="progress-bar"
@@ -266,337 +274,297 @@
       <!-- 錯誤訊息區 -->
       <div
         id="error-container"
-        class="mt-6 p-4 bg-red-900 border border-red-700 text-red-300 rounded-md hidden"
-      >
-        <h3 class="font-bold">發生錯誤</h3>
-        <p id="error-message"></p>
-      </div>
+        class="hidden mt-6 p-4 text-sm text-red-400 bg-red-900/20 rounded-lg"
+        role="alert"
+      ></div>
 
       <!-- 結果展示區 -->
-      <div
-        id="result-container"
-        class="mt-6 bg-gray-800 rounded-lg shadow-lg hidden"
-      >
-        <!-- 結果區頂部操作列 -->
-        <div
-          class="p-4 border-b border-gray-700 flex justify-between items-center"
-        >
-          <h2 class="text-xl font-bold text-white">分析結果</h2>
+      <div id="result-container" class="hidden mt-8">
+        <div class="flex justify-end mb-4">
           <button
-            id="copy-button"
-            class="bg-gray-600 text-white text-sm font-bold py-2 px-3 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 transition duration-300"
+            id="copy-btn"
+            class="text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-700 font-medium rounded-lg text-sm px-4 py-2 transition-colors flex items-center"
           >
-            複製報告
+            <svg
+              class="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              ></path>
+            </svg>
+            <span id="copy-btn-text">複製報告</span>
           </button>
         </div>
-        <!-- 可滾動的內容區 -->
-        <div class="max-h-[500px] overflow-y-auto p-4">
-          <!-- 高亮使用者表格 -->
-          <div id="highlight-table-container" class="hidden">
-            <h3 class="text-lg font-semibold text-green-400 mb-2">
-              高亮使用者
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-700">
-                <thead class="bg-gray-700">
-                  <tr>
-                    <!-- 表頭會由 JS 動態產生 -->
-                  </tr>
-                </thead>
-                <tbody
-                  id="highlight-table-body"
-                  class="divide-y divide-gray-700"
-                >
-                  <!-- 表格內容會由 JS 動態產生 -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 一般使用者表格 -->
-          <div id="normal-table-container" class="mt-4">
-            <h3
-              id="normal-table-title"
-              class="text-lg font-semibold text-white mb-2"
-            >
-              使用者列表
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-700">
-                <thead class="bg-gray-700">
-                  <tr>
-                    <!-- 表頭會由 JS 動態產生 -->
-                  </tr>
-                </thead>
-                <tbody id="normal-table-body" class="divide-y divide-gray-700">
-                  <!-- 表格內容會由 JS 動態產生 -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <div
+          id="result-tables"
+          class="max-h-[60vh] overflow-y-auto rounded-lg border border-gray-700"
+        >
+          <!-- 表格會動態插入此處 -->
         </div>
       </div>
-    </div>
+    </main>
 
     <script type="module">
-      // 引入 Tauri API
-      const { invoke } = window.__TAURI__.tauri
-      const { listen } = window.__TAURI__.event
-      const { writeText } = window.__TAURI__.clipboard
+      // (修正) 改用符合 Tauri v2 的 ES Module Imports 方式
+      import { core, event } from "@tauri-apps/api"
+      import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager"
 
-      // --- DOM 元素參照 ---
+      const { invoke } = core
+      const { listen } = event
+
+      // (Debug) 檢查 Tauri API 是否成功載入
+      console.log("Tauri API modules imported successfully.")
+
+      // DOM Elements
       const form = document.getElementById("analysis-form")
-      const urlInput = document.getElementById("url-input")
-      const typeCheckboxes = document.getElementById("type-checkboxes")
-      const keywordInput = document.getElementById("keyword-input")
-      const highlightInput = document.getElementById("highlight-input")
-      const submitButton = document.getElementById("submit-button")
-      const loadingSpinner = document.getElementById("loading-spinner")
-      const buttonText = document.getElementById("button-text")
+      const submitBtn = document.getElementById("submit-btn")
+      const btnText = document.getElementById("btn-text")
+      const btnLoader = document.getElementById("btn-loader")
       const progressContainer = document.getElementById("progress-container")
       const progressText = document.getElementById("progress-text")
       const progressBar = document.getElementById("progress-bar")
+      const progressPercentage = document.getElementById("progress-percentage")
       const errorContainer = document.getElementById("error-container")
-      const errorMessage = document.getElementById("error-message")
       const resultContainer = document.getElementById("result-container")
-      const copyButton = document.getElementById("copy-button")
-      const highlightTableContainer = document.getElementById(
-        "highlight-table-container"
-      )
-      const normalTableContainer = document.getElementById(
-        "normal-table-container"
-      )
-      const normalTableTitle = document.getElementById("normal-table-title")
+      const resultTables = document.getElementById("result-tables")
+      const copyBtn = document.getElementById("copy-btn")
+      const copyBtnText = document.getElementById("copy-btn-text")
 
-      // 儲存最新的分析結果
-      let latestAnalysisResult = null
+      // App state
+      let analysisResultCache = null
 
-      // --- (JS 邏輯未變) ---
+      // Event Listeners
+      console.log("Setting up event listeners...")
+      listen("SCRAPE_PROGRESS", (event) => {
+        const { current, total, user_id } = event.payload
+        const percentage = Math.round((current / total) * 100)
+        progressText.textContent = `[${current}/${total}] 正在查詢 ${user_id}...`
+        progressBar.style.width = `${percentage}%`
+        progressPercentage.textContent = `${percentage}%`
+      })
 
-      /** UI 狀態管理 */
-      function setUiLoading(isLoading) {
-        if (isLoading) {
-          submitButton.disabled = true
-          loadingSpinner.classList.remove("hidden")
-          buttonText.textContent = "分析中..."
-          progressContainer.classList.remove("hidden")
-          resultContainer.classList.add("hidden")
-          errorContainer.classList.add("hidden")
-          progressBar.style.width = "0%"
-          progressText.textContent = "正在準備分析..."
-        } else {
-          submitButton.disabled = false
-          loadingSpinner.classList.add("hidden")
-          buttonText.textContent = "開始分析"
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault()
+        // (Debug) 確認 submit 事件已觸發
+        console.log("Form submitted. Analysis started.")
+
+        setLoadingState(true)
+        resetUI()
+
+        const url = document.getElementById("url").value
+        const keywords = document
+          .getElementById("keywords")
+          .value.split(",")
+          .map((k) => k.trim())
+          .filter((k) => k)
+        const highlightCondition = document.getElementById("highlight").value
+
+        const filterTypes = []
+        document
+          .querySelectorAll('input[type="checkbox"]:checked')
+          .forEach((checkbox) => {
+            filterTypes.push(checkbox.value)
+          })
+
+        const payload = {
+          url,
+          filterTypes,
+          keywords: keywords.length > 0 ? keywords : null,
+          highlightCondition: highlightCondition || null,
         }
+
+        // (Debug) 顯示即將傳送給後端的 payload
+        console.log("Invoking 'analyze_ptt_article' with payload:", payload)
+
+        try {
+          const result = await invoke("analyze_ptt_article", payload)
+          // (Debug) 顯示後端成功回傳的結果
+          console.log("Backend returned result:", result)
+          analysisResultCache = result // Cache result for copy functionality
+          renderResult(result)
+        } catch (error) {
+          // (Debug) 顯示後端回傳的錯誤
+          console.error("Backend returned an error:", error)
+          showError(error)
+        } finally {
+          setLoadingState(false)
+          // (Debug) 確認分析流程結束 (無論成功或失敗)
+          console.log("Analysis finished.")
+        }
+      })
+
+      copyBtn.addEventListener("click", async () => {
+        if (!analysisResultCache) return
+
+        const reportText = generateReportText(analysisResultCache)
+        try {
+          await writeText(reportText)
+          copyBtnText.textContent = "已複製 ✓"
+          setTimeout(() => {
+            copyBtnText.textContent = "複製報告"
+          }, 2000)
+        } catch (err) {
+          console.error("無法複製到剪貼簿:", err)
+          copyBtnText.textContent = "複製失敗"
+        }
+      })
+      console.log("Event listeners set up.")
+
+      // UI Functions
+      function setLoadingState(isLoading) {
+        submitBtn.disabled = isLoading
+        btnText.classList.toggle("hidden", isLoading)
+        btnLoader.classList.toggle("hidden", !isLoading)
       }
 
-      /** 渲染表格 */
-      function renderTables(result) {
-        latestAnalysisResult = result
-        const { highlighted_data, normal_data } = result
+      function resetUI() {
+        errorContainer.classList.add("hidden")
+        resultContainer.classList.add("hidden")
+        progressContainer.classList.remove("hidden")
+        progressBar.style.width = "0%"
+        progressText.textContent = "準備開始分析..."
+        progressPercentage.textContent = "0%"
+        resultTables.innerHTML = ""
+        analysisResultCache = null
+      }
 
-        if (highlighted_data.length === 0 && normal_data.length === 0) {
-          errorContainer.classList.remove("hidden")
-          errorMessage.textContent = "找不到符合條件的留言。"
-          progressContainer.classList.add("hidden")
-          resultContainer.classList.add("hidden")
+      function renderResult(result) {
+        progressContainer.classList.add("hidden")
+        resultContainer.classList.remove("hidden")
+        resultTables.innerHTML = "" // Clear previous results
+
+        if (
+          result.highlighted_data.length === 0 &&
+          result.normal_data.length === 0
+        ) {
+          resultTables.innerHTML = `<p class="p-4 text-center text-gray-400">找不到符合條件的使用者留言。</p>`
           return
         }
 
-        const hasHighlightData = highlighted_data.length > 0
-        highlightTableContainer.classList.toggle("hidden", !hasHighlightData)
-        normalTableTitle.textContent = hasHighlightData
-          ? "一般使用者"
-          : "使用者列表"
-
-        const allBoards = new Set()
-        ;[...highlighted_data, ...normal_data].forEach((user) => {
-          Object.keys(user.board_comments).forEach((board) =>
-            allBoards.add(board)
+        if (result.highlighted_data.length > 0) {
+          resultTables.appendChild(
+            createTable(result.highlighted_data, "高亮使用者")
           )
-        })
-        const boardHeaders = Array.from(allBoards).sort()
-
-        const headers = [
-          "使用者",
-          "本文留言數",
-          ...boardHeaders,
-          "生涯總留言數",
-        ]
-        const headerHtml = headers
-          .map(
-            (h) =>
-              `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">${h}</th>`
+        }
+        if (result.normal_data.length > 0) {
+          resultTables.appendChild(
+            createTable(result.normal_data, "一般使用者")
           )
-          .join("")
-
-        const createTableRows = (data) => {
-          return data
-            .map((user) => {
-              const boardCells = boardHeaders
-                .map((board) => `<td>${user.board_comments[board] || 0}</td>`)
-                .join("")
-              return `
-                    <tr class="hover:bg-gray-700 transition">
-                        <td>${user.user}</td>
-                        <td>${user.article_comments}</td>
-                        ${boardCells}
-                        <td>${user.total_comments}</td>
-                    </tr>
-                `
-            })
-            .join("")
         }
-
-        const styleTableCells = (tableBody) => {
-          tableBody.querySelectorAll("td").forEach((td) => {
-            td.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-300"
-          })
-        }
-
-        if (hasHighlightData) {
-          const hTHead = highlightTableContainer.querySelector("thead tr")
-          const hTBody = highlightTableContainer.querySelector("tbody")
-          hTHead.innerHTML = headerHtml
-          hTBody.innerHTML = createTableRows(highlighted_data)
-          styleTableCells(hTBody)
-        }
-
-        const nTHead = normalTableContainer.querySelector("thead tr")
-        const nTBody = normalTableContainer.querySelector("tbody")
-        nTHead.innerHTML = headerHtml
-        nTBody.innerHTML = createTableRows(normal_data)
-        styleTableCells(nTBody)
-
-        resultContainer.classList.remove("hidden")
-        progressContainer.classList.add("hidden")
       }
 
-      /** 將結果轉換為 Markdown 格式以供複製 */
-      function formatResultAsMarkdown(result) {
-        const { highlighted_data, normal_data } = result
-
+      function createTable(data, title) {
         const allBoards = new Set()
-        ;[...highlighted_data, ...normal_data].forEach((user) => {
+        data.forEach((user) => {
           Object.keys(user.board_comments).forEach((board) =>
             allBoards.add(board)
           )
         })
-        const boardHeaders = Array.from(allBoards).sort()
+        const sortedBoards = Array.from(allBoards).sort()
         const headers = [
           "使用者",
           "本文留言數",
-          ...boardHeaders,
+          ...sortedBoards,
           "生涯總留言數",
         ]
 
-        const createMdTable = (data, title) => {
+        const container = document.createElement("div")
+        container.innerHTML = `
+          <h3 class="text-xl font-semibold p-4 bg-gray-800 text-white sticky top-0 z-10">${title}</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-400">
+              <thead class="text-xs text-gray-400 uppercase bg-gray-700">
+                <tr>
+                  ${headers
+                    .map((h) => `<th scope="col" class="px-6 py-3">${h}</th>`)
+                    .join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${data
+                  .map(
+                    (user) => `
+                  <tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-600">
+                    <td class="px-6 py-4 font-medium text-white whitespace-nowrap">${
+                      user.user
+                    }</td>
+                    <td class="px-6 py-4">${user.article_comments}</td>
+                    ${sortedBoards
+                      .map(
+                        (board) =>
+                          `<td class="px-6 py-4">${
+                            user.board_comments[board] || 0
+                          }</td>`
+                      )
+                      .join("")}
+                    <td class="px-6 py-4">${user.total_comments}</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+        return container
+      }
+
+      function showError(error) {
+        progressContainer.classList.add("hidden")
+        errorContainer.textContent = `發生錯誤: ${error}`
+        errorContainer.classList.remove("hidden")
+      }
+
+      function generateReportText(result) {
+        let text = ""
+        const generateTableText = (data, title) => {
           if (data.length === 0) return ""
+          const allBoards = new Set()
+          data.forEach((user) => {
+            Object.keys(user.board_comments).forEach((board) =>
+              allBoards.add(board)
+            )
+          })
+          const sortedBoards = Array.from(allBoards).sort()
+          const headers = [
+            "使用者",
+            "本文留言數",
+            ...sortedBoards,
+            "生涯總留言數",
+          ]
 
-          const headerRow = `| ${headers.join(" | ")} |`
-          const separatorRow = `|${headers.map(() => "---").join("|")}|`
-
-          const bodyRows = data
-            .map((user) => {
-              const boardCells = boardHeaders.map(
-                (board) => user.board_comments[board] || 0
-              )
-              const rowData = [
+          let table = `${title}\n`
+          table += headers.join("\t") + "\n"
+          table += data
+            .map((user) =>
+              [
                 user.user,
                 user.article_comments,
-                ...boardCells,
+                ...sortedBoards.map((board) => user.board_comments[board] || 0),
                 user.total_comments,
-              ]
-              return `| ${rowData.join(" | ")} |`
-            })
+              ].join("\t")
+            )
             .join("\n")
-
-          return `### ${title}\n\n${headerRow}\n${separatorRow}\n${bodyRows}`
+          return table
         }
 
-        let markdown = "## PTT 留言分析報告\n\n"
-        if (highlighted_data.length > 0) {
-          markdown += createMdTable(highlighted_data, "高亮使用者") + "\n\n"
+        if (result.highlighted_data.length > 0) {
+          text +=
+            generateTableText(result.highlighted_data, "--- 高亮使用者 ---") +
+            "\n\n"
         }
-        markdown += createMdTable(
-          normal_data,
-          highlighted_data.length > 0 ? "一般使用者" : "使用者列表"
-        )
-
-        return markdown
+        if (result.normal_data.length > 0) {
+          text += generateTableText(result.normal_data, "--- 一般使用者 ---")
+        }
+        return text
       }
-
-      // --- 事件監聽 ---
-
-      // 監聽後端進度事件
-      const unlisten = await listen("SCRAPE_PROGRESS", (event) => {
-        const { current, total, user_id } = event.payload
-        const percentage = total > 0 ? (current / total) * 100 : 0
-        progressBar.style.width = `${percentage}%`
-        progressText.textContent = `[${current}/${total}] 正在查詢 ${user_id}...`
-      })
-
-      // 監聽表單提交
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault()
-        setUiLoading(true)
-
-        const selectedTypes = Array.from(
-          typeCheckboxes.querySelectorAll("input:checked")
-        ).map((cb) => cb.value)
-        // 如果使用者取消所有勾選，則視為不過濾類型
-        if (selectedTypes.length === 0) {
-          selectedTypes.push("push", "hate", "arrow", "unknown") // 'unknown' for safety
-        }
-
-        const keywords = keywordInput.value.trim()
-          ? keywordInput.value
-              .split(",")
-              .map((k) => k.trim())
-              .filter((k) => k)
-          : null
-
-        const params = {
-          url: urlInput.value,
-          filterTypes: selectedTypes,
-          keywords: keywords,
-          highlightCondition: highlightInput.value || null,
-        }
-
-        try {
-          const result = await invoke("analyze_ptt_article", params)
-          renderTables(result)
-        } catch (err) {
-          errorContainer.classList.remove("hidden")
-          errorMessage.textContent = err.toString()
-          progressContainer.classList.add("hidden")
-        } finally {
-          setUiLoading(false)
-        }
-      })
-
-      // 監聽複製按鈕點擊
-      copyButton.addEventListener("click", async () => {
-        if (!latestAnalysisResult) return
-
-        const markdownText = formatResultAsMarkdown(latestAnalysisResult)
-        try {
-          await writeText(markdownText)
-          const originalText = copyButton.textContent
-          copyButton.textContent = "已複製 ✓"
-          setTimeout(() => {
-            copyButton.textContent = originalText
-          }, 2000)
-        } catch (err) {
-          console.error("複製失敗:", err)
-          errorMessage.textContent = "複製到剪貼簿失敗！"
-          errorContainer.classList.remove("hidden")
-          setTimeout(() => {
-            errorContainer.classList.add("hidden")
-          }, 3000)
-        }
-      })
     </script>
   </body>
 </html>
