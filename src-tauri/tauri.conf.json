@@ -1,7 +1,7 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "identifier": "com.tauri.dev",
-  "productName": "ptt-article-analyzer",
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.s22shadowl.simple-ptt-commenter-analyzer-tauri",
+  "productName": "simple-ptt-commenter-analyzer-tauri",
   "version": "0.1.0",
   "build": {
     "beforeBuildCommand": "npm run build",
