@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 定義目標平台
-        platform: [macos-latest, windows-latest]
+        # 定義三個目標平台
+        platform: [macos-latest, ubuntu-latest, windows-latest]
 
     # 設定虛擬機器的作業系統
     runs-on: ${{ matrix.platform }}
@@ -42,21 +42,28 @@ jobs:
         run: npm install
 
       # 步驟 5: 執行 Tauri build 指令
-      # TAURI_PRIVATE_KEY 和 TAURI_KEY_PASSWORD 是用於簽署更新時使用，如果不需要可以移除
       - name: Build Tauri application
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          # Tauri CLI 指令，此處為 'build'
           args: ${{ matrix.platform == 'windows-latest' && '--verbose' || '' }}
 
-      # 步驟 6: 上傳打包好的執行檔
-      # 這一步會將產生的 .exe, .dmg 等檔案上傳到 GitHub Actions 的 artifacts 中，方便下載
-      - name: Upload Release Artifact
+      # 步驟 6: 上傳打包好的安裝檔 (Installer)
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-build-${{ matrix.platform }}
+          name: installer-${{ matrix.platform }}
           path: src-tauri/target/release/bundle/
+
+      #步驟 7: 上傳獨立執行檔 (Standalone Executable)
+      - name: Upload Standalone Executable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.platform }}
+          # 根據不同平台，設定不同的執行檔路徑
+          path: |
+            src-tauri/target/release/ptt_scraper_tauri.exe
+            src-tauri/target/release/bundle/macos/*.app
+          # 如果找不到檔案也不會讓整個流程失敗
+          if-no-files-found: ignore
